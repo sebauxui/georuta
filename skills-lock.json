@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "tailwind-css-patterns": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "computedHash": "a9d14dbb31901e53f37a33cf4d7495da95c66781dc67fe62b3e70a944bd050e0"
+    }
+  }
+}
