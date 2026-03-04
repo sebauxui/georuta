@@ -305,6 +305,10 @@ const ui = {
 let cardsObserver = null;
 
 function showToast(message) {
+  if (!ui.toast) {
+    console.log("Toast:", message);
+    return;
+  }
   ui.toast.textContent = message;
   ui.toast.classList.add("show");
   clearTimeout(showToast.timer);
