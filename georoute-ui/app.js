@@ -741,7 +741,7 @@ function renderGeneratedSummary() {
 
   const items = [
     `<li class="timeline-item timeline-start">
-      <div class="timeline-badge icon">⌖</div>
+      <div class="timeline-badge icon"><i data-lucide="locate-fixed"></i></div>
       <div class="timeline-card">
         <strong>INICIO EN ALOJAMIENTO</strong>
         <small>${state.hotel}, ${state.cityText}</small>
@@ -757,7 +757,7 @@ function renderGeneratedSummary() {
 
     items.push(`<li class="timeline-item timeline-gap">
       <div class="timeline-badge dot"></div>
-      <div class="timeline-distance">✈ ${poi.transferMin}m</div>
+      <div class="timeline-distance"><i data-lucide="car-front"></i> ${poi.transferMin}m</div>
     </li>`);
 
     items.push(`<li class="timeline-item timeline-stop">
@@ -771,23 +771,24 @@ function renderGeneratedSummary() {
       <div class="poi-map">
         <iframe title="Mapa ${poi.name}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="${mapEmbed}"></iframe>
       </div>
-      <a class="route-link" href="${mapsDirections}" target="_blank" rel="noopener noreferrer">✈ Cómo llegar</a>
+      <a class="route-link" href="${mapsDirections}" target="_blank" rel="noopener noreferrer"><i data-lucide="map-pinned"></i> Cómo llegar</a>
       </div>
     </li>`);
   });
 
   items.push(`<li class="timeline-item timeline-gap">
     <div class="timeline-badge dot"></div>
-    <div class="timeline-distance">✈ 0m</div>
+    <div class="timeline-distance"><i data-lucide="car-front"></i> 0m</div>
   </li>`);
 
   items.push(`<li class="timeline-item timeline-end">
-  <div class="timeline-badge icon">✓</div>
+  <div class="timeline-badge icon"><i data-lucide="check"></i></div>
   <div class="timeline-card"><strong>REGRESO AL ALOJAMIENTO</strong><small>Llegada estimada: ${String(9 + state.generated.length).padStart(
     2,
     "0"
   )}:00</small></div></li>`);
   ui.itineraryList.innerHTML = items.join("");
+  refreshIcons();
 }
 
 function generateMasterPlan() {
