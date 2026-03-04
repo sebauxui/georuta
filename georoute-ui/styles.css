@@ -276,10 +276,12 @@ button:focus-visible {
 .explore-toolbar {
   display: grid;
   gap: 12px;
+  justify-items: center;
 }
 
 .search-wrap {
   position: relative;
+  width: min(640px, 100%);
 }
 
 .search-icon {

@@ -268,6 +268,8 @@ const state = {
   generated: [],
   cardsPageSize: 6,
   cardsVisible: 6,
+  dynamicPois: [],
+  loadingPois: false,
 };
 
 const ui = {
@@ -325,6 +327,7 @@ function renderDaysGrid() {
 }
 
 function selectedCityPois() {
+  if (state.dynamicPois.length > 0) return state.dynamicPois;
   const queryCity = state.cityText.trim().toLowerCase();
   const scoped = POIS.filter((poi) => poi.city.toLowerCase().includes(queryCity));
   return scoped.length ? scoped : POIS;
@@ -338,6 +341,129 @@ function filteredPois() {
     if (query && !poi.name.toLowerCase().includes(query) && !poi.address.toLowerCase().includes(query)) return false;
     return true;
   });
+}
+
+function categorizePoi(name = "", address = "") {
+  const text = `${name} ${address}`.toLowerCase();
+  if (/muse|igles|templo|plaza|ruina|hist|galer|teatro|centro/.test(text)) return "cultural";
+  if (/parque|lago|playa|mirador|jardin|valle|laguna|river|costa/.test(text)) return "relax";
+  if (/trek|cerro|volcan|geyser|ski|mount|ruta|sender/.test(text)) return "activo";
+  if (/mercado|food|cafe|rest|gastr|bar/.test(text)) return "gastronomia";
+  return "turismo";
+}
+
+function buildDynamicPoi(raw, cityName, index) {
+  const category = categorizePoi(raw.title, raw.address || "");
+  const baseDuration = {
+    relax: 70,
+    cultural: 95,
+    activo: 130,
+    gastronomia: 80,
+    turismo: 90,
+  }[category];
+  const transfer = Math.max(8, Math.min(55, Math.round((raw.dist || 1200) / 180)));
+  const rating = 4 + ((index % 9) * 0.1);
+
+  return {
+    id: `dyn-${cityName.toLowerCase().replace(/\s+/g, "-")}-${raw.pageid || index}`,
+    city: cityName,
+    name: raw.title,
+    category,
+    durationMin: baseDuration,
+    transferMin: transfer,
+    rating: Math.min(4.9, Number(rating.toFixed(1))),
+    address: raw.address || cityName,
+    match:
+      category === "gastronomia"
+        ? ["gastronomia", "relax", "turismo"]
+        : category === "activo"
+          ? ["activo", "turismo"]
+          : category === "cultural"
+            ? ["cultural", "turismo", "relax"]
+            : ["relax", "turismo", "cultural"],
+    image: `https://picsum.photos/seed/${encodeURIComponent(`${cityName}-${raw.title}`)}/900/900`,
+    mapQuery: `${raw.title}, ${cityName}`,
+  };
+}
+
+function createSyntheticPois(cityName) {
+  const base = [
+    { key: "plaza", name: "Plaza Central", category: "cultural", mins: 70, transfer: 12, query: "plaza principal" },
+    { key: "mirador", name: "Mirador Panorámico", category: "turismo", mins: 85, transfer: 18, query: "mirador" },
+    { key: "mercado", name: "Mercado Local", category: "gastronomia", mins: 80, transfer: 14, query: "mercado municipal" },
+    { key: "museo", name: "Museo Histórico", category: "cultural", mins: 95, transfer: 16, query: "museo" },
+    { key: "parque", name: "Parque Urbano", category: "relax", mins: 75, transfer: 10, query: "parque" },
+    { key: "costanera", name: "Costanera / Paseo", category: "relax", mins: 65, transfer: 13, query: "costanera" },
+    { key: "artesania", name: "Feria de Artesanía", category: "turismo", mins: 60, transfer: 11, query: "feria artesanal" },
+    { key: "sendero", name: "Sendero Natural", category: "activo", mins: 120, transfer: 26, query: "sendero" },
+    { key: "cafes", name: "Ruta de Cafés", category: "gastronomia", mins: 90, transfer: 15, query: "cafe" },
+    { key: "barrio", name: "Barrio Patrimonial", category: "cultural", mins: 85, transfer: 17, query: "barrio historico" },
+    { key: "laguna", name: "Laguna / Ribera", category: "relax", mins: 100, transfer: 20, query: "laguna" },
+    { key: "adventure", name: "Circuito Aventura", category: "activo", mins: 140, transfer: 30, query: "aventura" },
+  ];
+
+  return base.map((item, index) => ({
+    id: `syn-${cityName.toLowerCase().replace(/\s+/g, "-")}-${item.key}-${index}`,
+    city: cityName,
+    name: `${item.name} de ${cityName}`,
+    category: item.category,
+    durationMin: item.mins,
+    transferMin: item.transfer,
+    rating: Number((4.2 + ((index % 6) * 0.1)).toFixed(1)),
+    address: `${cityName}`,
+    match:
+      item.category === "gastronomia"
+        ? ["gastronomia", "relax", "turismo"]
+        : item.category === "activo"
+          ? ["activo", "turismo"]
+          : item.category === "cultural"
+            ? ["cultural", "turismo", "relax"]
+            : ["relax", "turismo", "cultural"],
+    image: `https://picsum.photos/seed/${encodeURIComponent(`synthetic-${cityName}-${item.key}`)}/900/900`,
+    mapQuery: `${item.query}, ${cityName}`,
+  }));
+}
+
+async function fetchCityDestinations(cityName) {
+  state.loadingPois = true;
+  ui.cardsHint.textContent = `Buscando destinos en ${cityName}...`;
+  try {
+    const geoResp = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(cityName)}`
+    );
+    if (!geoResp.ok) throw new Error("Geocoding failed");
+    const geoData = await geoResp.json();
+    if (!Array.isArray(geoData) || geoData.length === 0) throw new Error("City not found");
+    const lat = Number(geoData[0].lat);
+    const lon = Number(geoData[0].lon);
+
+    const wikiResp = await fetch(
+      `https://es.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}%7C${lon}&gsradius=15000&gslimit=50&format=json&origin=*`
+    );
+    if (!wikiResp.ok) throw new Error("Places lookup failed");
+    const wikiJson = await wikiResp.json();
+    const items = wikiJson?.query?.geosearch ?? [];
+    const cleaned = items
+      .filter((item) => item.title && item.dist < 60000)
+      .slice(0, 45)
+      .map((item, index) => buildDynamicPoi(item, cityName, index));
+
+    if (cleaned.length >= 8) {
+      state.dynamicPois = cleaned;
+      return;
+    }
+
+    // Completa catálogo con POIs sintéticos para asegurar cobertura usable por ciudad.
+    const synthetic = createSyntheticPois(cityName);
+    const merged = [...cleaned, ...synthetic].slice(0, 45);
+    state.dynamicPois = merged;
+    return;
+  } catch (error) {
+    state.dynamicPois = createSyntheticPois(cityName);
+    showToast("API externa no disponible. Usando catálogo inteligente local por ciudad.");
+  } finally {
+    state.loadingPois = false;
+  }
 }
 
 function refreshIcons() {
@@ -486,8 +612,15 @@ function buildItinerary() {
   const chosen = cityPois.filter((poi) => state.selected.has(poi.id)).sort((a, b) => {
     return a.transferMin - b.transferMin;
   });
-
-  state.generated = chosen;
+  const perDay = Math.max(1, Math.ceil(chosen.length / state.days));
+  const withDayPlan = [];
+  for (let day = 0; day < state.days; day += 1) {
+    const start = day * perDay;
+    const block = chosen.slice(start, start + perDay);
+    if (!block.length) continue;
+    block.forEach((poi) => withDayPlan.push({ ...poi, itineraryDay: day + 1 }));
+  }
+  state.generated = withDayPlan;
 }
 
 function setStatus(kind, title, text) {
@@ -546,7 +679,7 @@ function renderGeneratedSummary() {
       <div class="timeline-badge number">${i + 1}</div>
       <div class="timeline-card">
       <div class="timeline-stop-head">
-        <strong>${i + 1}. ${poi.name}</strong>
+        <strong>Día ${poi.itineraryDay} · ${i + 1}. ${poi.name}</strong>
         <span class="timeline-time">${String(9 + i).padStart(2, "0")}:00</span>
       </div>
       <small>${poi.durationMin} min visita · ${poi.transferMin} min traslado · llegada ${String(9 + i).padStart(2, "0")}:00</small>
@@ -661,8 +794,11 @@ function goHome() {
 }
 
 function bindEvents() {
-  ui.step1Continue.addEventListener("click", () => {
+  ui.step1Continue.addEventListener("click", async () => {
     if (!validateStep(1)) return;
+    state.dynamicPois = [];
+    resetCardsPagination();
+    await fetchCityDestinations(state.cityText);
     setStep(2);
   });
 
