@@ -1,17 +1,98 @@
-const STEPS = [
-  {
-    title: "¿Dónde te alojas?",
-    subtitle: "Cada plan comienza y termina en tu hogar lejos de casa.",
+const STEPS = {
+  ES: [
+    { title: "¿Dónde te alojas?", subtitle: "Cada plan comienza y termina en tu hogar lejos de casa." },
+    { title: "Explora el destino", subtitle: "Usa preferencias como filtro para descubrir lugares." },
+    { title: "Itinerario validado", subtitle: "Revisa viabilidad y activa navegación en Google Maps." },
+  ],
+  EN: [
+    { title: "Where are you staying?", subtitle: "Every plan starts and ends at your home away from home." },
+    { title: "Explore destination", subtitle: "Use preferences as filters to discover places." },
+    { title: "Validated itinerary", subtitle: "Check viability and activate Google Maps navigation." },
+  ]
+};
+
+const TRANSLATIONS = {
+  ES: {
+    step: "Paso",
+    of: "de",
+    hotelLabel: "Dirección de alojamiento",
+    hotelPlaceholder: "Ej: Hotel Cumbres, Villarrica",
+    cityLabel: "Ciudad",
+    cityPlaceholder: "Ej: Villarrica",
+    daysLabel: "¿Cuántos días?",
+    whyTitle: "¿Por qué esto?",
+    whyText: "Construimos la ruta alrededor de tu alojamiento para evitar traslados irreales y maximizar tu día.",
+    continue: "Continuar",
+    back: "Volver",
+    searchPlaceholder: "Buscar destino...",
+    styleFilter: "Filtra por estilo",
+    addDest: "Agregar destino",
+    remDest: "Quitar destino",
+    reviewItin: "Revisar itinerario",
+    viability: "Estado de viabilidad",
+    pending: "Pendiente de cálculo",
+    pendingText: "Genera el plan para validar tiempos, distancias y factibilidad.",
+    viable: "Viable",
+    tight: "Ajustado",
+    demanding: "Exigente",
+    kmTotal: "km de recorrido total",
+    hEstimated: "h estimadas",
+    startStay: "INICIO EN ALOJAMIENTO",
+    endStay: "REGRESO AL ALOJAMIENTO",
+    howToGet: "Cómo llegar",
+    export: "Exportar",
+    share: "Compartir",
+    day: "Día",
+    days: "Días",
+    visit: "visita",
+    transfer: "traslado",
+    arrival: "llegada",
+    noResults: "No hay resultados con estos filtros.",
+    langActive: "Idioma activo",
+    toastPlanGen: "Plan maestro generado.",
+    toastHome: "Volviste al inicio."
   },
-  {
-    title: "Explora el destino",
-    subtitle: "Usa preferencias como filtro para descubrir lugares.",
-  },
-  {
-    title: "Itinerario validado",
-    subtitle: "Revisa viabilidad y activa navegación en Google Maps.",
-  },
-];
+  EN: {
+    step: "Step",
+    of: "of",
+    hotelLabel: "Accommodation address",
+    hotelPlaceholder: "Ex: Hotel Cumbres, Villarrica",
+    cityLabel: "City",
+    cityPlaceholder: "Ex: Villarrica",
+    daysLabel: "How many days?",
+    whyTitle: "Why this?",
+    whyText: "We build the route around your stay to avoid unrealistic commutes and maximize your day.",
+    continue: "Continue",
+    back: "Back",
+    searchPlaceholder: "Search destination...",
+    styleFilter: "Filter by style",
+    addDest: "Add destination",
+    remDest: "Remove destination",
+    reviewItin: "Review itinerary",
+    viability: "Viability status",
+    pending: "Pending calculation",
+    pendingText: "Generate the plan to validate times, distances and feasibility.",
+    viable: "Viable",
+    tight: "Tight",
+    demanding: "Demanding",
+    kmTotal: "total km",
+    hEstimated: "estimated hours",
+    startStay: "START AT ACCOMMODATION",
+    endStay: "RETURN TO ACCOMMODATION",
+    howToGet: "Get directions",
+    export: "Export",
+    share: "Share",
+    day: "Day",
+    days: "Days",
+    visit: "visit",
+    transfer: "transfer",
+    arrival: "arrival",
+    noResults: "No results with these filters.",
+    langActive: "Active language",
+    toastPlanGen: "Master plan generated.",
+    toastHome: "Back to start."
+  }
+};
 
 const POIS = [
   {
@@ -318,10 +399,12 @@ function showToast(message) {
 }
 
 function renderDaysGrid() {
+  const t = TRANSLATIONS[state.language];
   const nodes = Array.from({ length: 7 }, (_, i) => {
     const day = i + 1;
     const active = day === state.days ? "active" : "";
-    return `<button type="button" class="day-card ${active}" data-day="${day}"><strong>${day}</strong>${day === 1 ? "DÍA" : "DÍAS"}</button>`;
+    const label = day === 1 ? t.day : t.days;
+    return `<button type="button" class="day-card ${active}" data-day="${day}"><strong>${day}</strong>${label.toUpperCase()}</button>`;
   }).join("");
   ui.daysGrid.innerHTML = nodes;
 }
@@ -474,9 +557,10 @@ function refreshIcons() {
 
 function renderCards() {
   const rows = filteredPois();
+  const t = TRANSLATIONS[state.language];
   if (!rows.length) {
-    ui.cardsList.innerHTML = "<article class='poi-card'><div class='poi-body'><p>No hay resultados con estos filtros.</p></div></article>";
-    ui.cardsHint.textContent = "Sin resultados para los filtros activos.";
+    ui.cardsList.innerHTML = `<article class='poi-card'><div class='poi-body'><p>${t.noResults}</p></div></article>`;
+    ui.cardsHint.textContent = t.noResults;
     ui.cardsSentinel.style.display = "none";
     refreshIcons();
     return;
@@ -506,11 +590,10 @@ function renderCards() {
             <span><i data-lucide="tag"></i> ${poi.category}</span>
           </div>
           <div class="poi-actions">
-            <button class="add-btn ${active ? "active" : ""}" data-add="${poi.id}" type="button">${
-              active ? "Quitar destino" : "Agregar destino"
-            }</button>
+            <button class="add-btn ${active ? "active" : ""}" data-add="${poi.id}" type="button">${active ? t.remDest : t.addDest
+        }</button>
             <a class="link-btn maps-btn" href="${mapsSearch}" target="_blank" rel="noopener noreferrer">
-              <i data-lucide="map-pinned"></i> Ver en Google Maps
+              <i data-lucide="map-pinned"></i> ${t.howToGet}
             </a>
           </div>
         </div>
@@ -555,8 +638,10 @@ function setStep(step) {
     screen.classList.toggle("active", Number(screen.dataset.step) === state.step);
   });
 
-  const cfg = STEPS[state.step - 1];
-  ui.stepKicker.textContent = `Paso ${state.step} de ${STEPS.length}`;
+  const cfg = STEPS[state.language][state.step - 1];
+  const t = TRANSLATIONS[state.language];
+
+  ui.stepKicker.textContent = `${t.step} ${state.step} ${t.of} 3`;
   ui.stepTitle.textContent = cfg.title;
   ui.stepSubtitle.textContent = cfg.subtitle;
 
@@ -706,14 +791,14 @@ function renderGeneratedSummary() {
 }
 
 function generateMasterPlan() {
+  const t = TRANSLATIONS[state.language];
   if (!validateStep(2)) {
-    showToast("Selecciona al menos un destino para generar el plan.");
     return;
   }
 
   buildItinerary();
   renderGeneratedSummary();
-  showToast("Plan maestro generado.");
+  showToast(t.toastPlanGen);
   setStep(3);
 }
 
@@ -784,7 +869,39 @@ function toggleTheme() {
 function toggleLanguage() {
   state.language = state.language === "ES" ? "EN" : "ES";
   ui.langBtn.textContent = state.language;
-  showToast(`Idioma activo: ${state.language}`);
+
+  const t = TRANSLATIONS[state.language];
+
+  // Actualizar placeholders e labels estáticos
+  document.querySelector("label[for='hotelInput']").textContent = t.hotelLabel;
+  ui.hotelInput.placeholder = t.hotelPlaceholder;
+  document.querySelector("label[for='cityInput']").textContent = t.cityLabel;
+  ui.cityInput.placeholder = t.cityPlaceholder;
+  document.querySelector(".wizard .days-grid").previousElementSibling.textContent = t.daysLabel;
+  document.querySelector(".why-box h3").textContent = t.whyTitle;
+  document.querySelector(".why-box p").textContent = t.whyText;
+
+  ui.step1Continue.textContent = t.continue;
+  ui.step2Continue.textContent = t.reviewItin;
+
+  // Actualizar Step 2
+  document.querySelector(".step-screen[data-step='2'] .section-label").textContent = t.styleFilter;
+  ui.searchInput.placeholder = t.searchPlaceholder;
+
+  // Actualizar Step 3
+  document.querySelector(".status-kicker").textContent = t.viability;
+  ui.navigateBtn.innerHTML = `<i data-lucide="send"></i> ${t.howToGet}`;
+  ui.saveBtn.innerHTML = `<i data-lucide="download"></i> ${t.export}`;
+  ui.shareBtn.innerHTML = `<i data-lucide="share-2"></i> ${t.share}`;
+
+  // Refrescar vistas dinámicas
+  renderDaysGrid();
+  setStep(state.step); // Refresca títulos
+  if (state.step === 2) renderCards();
+  if (state.step === 3) renderGeneratedSummary();
+
+  showToast(`${t.langActive}: ${state.language}`);
+  refreshIcons();
 }
 
 function goHome() {
