@@ -290,7 +290,9 @@ button:focus-visible {
   top: 50%;
   transform: translateY(-50%);
   color: rgba(46, 46, 46, 0.55);
-  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.5;
   pointer-events: none;
 }
 
@@ -325,9 +327,9 @@ button:focus-visible {
 }
 
 .poi-body {
-  padding: 8px 2px 2px;
+  padding: 16px 2px 2px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .poi-top {
@@ -682,11 +684,20 @@ button:focus-visible {
   bottom: calc(12px + env(safe-area-inset-bottom));
   width: min(1500px, calc(100% - 24px));
   z-index: 40;
-  border: 1px solid #d8cec2;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 22px;
-  background: color-mix(in srgb, #ffffff 94%, var(--bg) 6%);
-  box-shadow: 0 14px 26px rgba(50, 35, 30, 0.1);
+  /* Fallback para navegadores sin soporte de backdrop-filter (como versiones antiguas de Firefox) */
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.1);
   padding: 10px 14px;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .floating-cta {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
 }
 
 .cta-step {
@@ -825,7 +836,7 @@ body.step-3 .cta-step-3 {
 
 @media (min-width: 920px) {
   .explore-toolbar {
-    grid-template-columns: 1.4fr 0.6fr;
+    grid-template-columns: 1fr;
   }
 }
 
